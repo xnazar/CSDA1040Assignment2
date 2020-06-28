@@ -14,3 +14,28 @@ knitr::opts_chunk$set(echo = TRUE)
 getwd()
 ```
 
+```{r}
+library(dplyr)
+library(tidytext)
+library(ggplot2)
+library(stringr)
+```
+
+```{r}
+# Import Data
+tweets=read.csv("Tweets.csv")
+```
+
+```{r}
+# Summary of Data
+summary(tweets)
+```
+
+```{r}
+
+```
+
+# Bibliography
+
+https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
+
