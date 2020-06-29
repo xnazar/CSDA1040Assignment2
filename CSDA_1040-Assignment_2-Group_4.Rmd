@@ -6,6 +6,18 @@ date: "27/06/2020"
 output: html_document
 ---
 
+# 1.0 Abstract
+
+# 2.0 Introduction
+
+# 3.0 Objectives
+
+# 4.0 Data Understanding
+
+### 4.1 About the Data
+
+https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -15,25 +27,58 @@ getwd()
 ```
 
 ```{r}
-library(dplyr)
-library(tidytext)
-library(ggplot2)
-library(stringr)
-```
-
-```{r}
 # Import Data
 tweets=read.csv("Tweets.csv")
 ```
 
 ```{r}
+# Load Libraries
+library(dplyr)
+library(tidytext)
+library(ggplot2)
+library(stringr)
+library(RColorBrewer)
+library(wordcloud)
+```
+
+```{r}
 # Summary of Data
+str(tweets)
+```
+
+```{r}
+# Details of Data
 summary(tweets)
+```
+
+The dataset's "text" column contains details of the tweets, we would be looking to analyze. 
+
+```{r}
+# Text processing function
+# https://gist.github.com/CateGitau/05e6ff80b2a3aaa58236067811cee44e
+textprocessing<-function(x)
+{
+  gsub("http[[:alnum:]]*",'', x)
+  gsub('http\\S+\\s*', '', x) ## Remove URLs
+  gsub('\\b+RT', '', x) ## Remove RT
+  gsub('#\\S+', '', x) ## Remove Hashtags
+  gsub('@\\S+', '', x) ## Remove Mentions
+  gsub('[[:cntrl:]]', '', x) ## Remove Controls and special characters
+  gsub("\\d", '', x) ## Remove Controls and special characters
+  gsub('[[:punct:]]', '', x) ## Remove Punctuation
+  gsub("^[[:space:]]*","",x) ## Remove leading whitespaces
+  gsub("[[:space:]]*$","",x) ## Remove trailing whitespaces
+  gsub(' +',' ',x) ## Remove extra whitespaces
+}
 ```
 
 ```{r}
 
 ```
+
+
+
+
 
 # Bibliography
 
