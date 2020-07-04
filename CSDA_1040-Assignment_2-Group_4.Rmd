@@ -2,21 +2,27 @@
 title: 'CSDA 1040: Assignment 2 - Group 4'
 author: Jose German, Anjana Pradeep Kumar, Anupama Radhakrishnan Kowsalya, and Xenel
   Nazar
-date: "27/06/2020"
+date: "04/07/2020"
 output: html_document
 ---
 
 # 1.0 Abstract
 
 # 2.0 Introduction
+The U.S. airline industry is an important driver of the U.S. economy, generating $1.7 Trillion in economic activity and more than 10 million jobs (https://www.airlines.org/industry/). The average industry growth from 2015-2020 was 0.3% (https://www.ibisworld.com/united-states/market-research-reports/domestic-airlines-industry/). In addition, around 17 U.S. airports are listed in the top 60 busiest airports in the world (https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf). 
 
-# 3.0 Objectives
+Various factors affect the competitive nature between the leading U.S. airlines, one way to differentiate is provide excellent customer service in their operations. Airlines can use various resources like Twitter, to get real time indicators of customer sentiment. Twitter is a global platform for public self-expression and conversation in real time (https://www.sec.gov/Archives/edgar/data/1418091/000119312513390321/d564001ds1.htm).
+
+Reviewing customer sentiment through passengers' twitter posts can help airlines quickly act on any issues that the passengers face and implement any measures to address declining or negative sentiments.
+
+# 3.0 Objective
+The objective is to analyze U.S. airline customer tweets and visualizing keywords that will help stakeholders quickly determine customer sentiment (positive/negative). 
 
 # 4.0 Data Understanding
 
 ### 4.1 About the Data
 
-The data includes twitter data that was scrapped from February 2015 detailing the problems of each major U.S. Airline and hosted on Kaggle (https://www.kaggle.com/crowdflower/twitter-airline-sentiment). The data was originally collected by Crowdflower (https://data.world/crowdflower/airline-twitter-sentiment) previously known as Figure Eight Inc., and subsequently acquired by Appen an AI data company (https://appen.com/). Contributors helped classify the tweets as either positive, negative, or neutral, and then categorizing neutral tweets under various negative reasons (e.g. "late flight", "rude service) (https://data.world/crowdflower/airline-twitter-sentiment). Prior to the initial load into Kaggle, certain transformations were done by Ben Hammer the Co-Founder and CTO at Kaggle. (https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py). 
+The data includes twitter posts that was scrapped from February 2015 detailing the problems of each major U.S. Airline and hosted on Kaggle (https://www.kaggle.com/crowdflower/twitter-airline-sentiment). The data was originally collected by Crowdflower (https://data.world/crowdflower/airline-twitter-sentiment) previously known as Figure Eight Inc., and subsequently acquired by Appen an AI data company (https://appen.com/). Contributors helped classify the tweets as either positive, negative, or neutral, and then categorizing negative tweets under various negative reasons (e.g. "late flight", "rude service") (https://data.world/crowdflower/airline-twitter-sentiment). Prior to the initial load into Kaggle, certain transformations were done by Ben Hammer the Co-Founder and CTO at Kaggle. (https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py). 
 
 https://data.world/crowdflower/airline-twitter-sentiment
 
@@ -39,6 +45,7 @@ getwd()
 ```{r}
 # Import Data
 tweets=read.csv("Tweets.csv",na.strings=c("", "NA"),stringsAsFactors = FALSE)
+df=tweets
 ```
 
 ### 4.3 Import Packages
@@ -55,6 +62,10 @@ library(tm)
 library(NLP)
 library(SentimentAnalysis)
 library(e1071)
+library(gmodels)
+library(tidyverse)
+library(gridExtra)
+library(ggthemes)
 ```
 
 # 5.0	Data Exploration and Preparation
@@ -109,14 +120,12 @@ Replace NAs under the negative reason confidence with mean
 # Replace NA with mean
 confMean=trunc(mean(tweets$negconfidence, na.rm = TRUE))
 tweets$negconfidence[is.na(tweets$negconfidence)]<-confMean
-
 ```
 
 Replace NAs under location, with Not Available
 ```{r}
 # Replace NA with Not Available
 tweets$location[is.na(tweets$location)]<-"Not Available"
-
 ```
 
 Replace NAs under timezone with Not Available
@@ -140,7 +149,25 @@ table(is.na(tweets))
 
 ### 5.2 Visualization of Data
 
-Plot tweets by Airline
+Plot number of tweets per Airline
+```{r}
+# of tweets per Airline
+count<-tweets %>%
+  group_by(airline) %>%
+  summarise(tcount1=n(),.groups = 'drop')
+
+#Plotting the number of tweets each airlines has received
+
+bg<- ggplot(count) + aes(x= airline,y = tcount1,fill=airline)+ 
+  geom_bar(width = 1, stat = "identity")+
+  #geom_histogram()+
+  ylab(" No of Tweets") + xlab("Airlines")
+bg
+```
+
+The number of tweets per U.S. airline provides a quick indicator of market share, mirroring actual figures (https://www.statista.com/statistics/250577/domestic-market-share-of-leading-us-airlines/). For perspective, US Airways and American began the process of a merger in 2013 (https://money.cnn.com/2013/02/14/news/companies/us-airways-american-airlines-merger/index.html). Virgin America a smaller player in the industry was then acquired by Alaska airlines in 2016 (https://investor.alaskaair.com/news-releases/news-release-details/alaska-air-group-acquire-virgin-america-creating-west-coasts).
+
+Plot tweets by Airline with time period
 ```{r}
 # Plot tweets by Airline
 tweetsbyAirline<-tweets%>%
@@ -149,15 +176,37 @@ tweetsbyAirline<-tweets%>%
 tweetsbyAirlinePlot=ggplot()+geom_line(data=tweetsbyAirline,aes(x=created,y=tcount,group=airline,color=airline))
 tweetsbyAirlinePlot
 ```
+
 Plot tweets by Sentiment
 ```{r}
-# Plot tweets by Sentiment
+#counting the number of each type of sentiments 
+count_senti<-tweets %>%
+  group_by(sentiment) %>%
+  summarise(tc=n(),.groups = 'drop')
+
+#Plotting the number of each type of sentiments
+
+bg2<- ggplot(count_senti) + aes(x= sentiment ,y = tc,fill=sentiment)+ 
+  geom_bar(width = 1, stat = "identity")+
+  #geom_histogram()+
+  ylab(" No of Tweets") + xlab("Sentiments")
+
+bg2
+```
+
+Plot tweets by Sentiment with time period
+```{r}
+# Plot tweets by Sentiment from when tweet was posted
 tweetsbySentiment<-tweets%>%
   group_by(sentiment,created)%>%
   summarise(scount=n())
 tweetsbySentimentPlot=ggplot()+geom_line(data=tweetsbySentiment,aes(x=created,y=scount,group=sentiment,color=sentiment))
 tweetsbySentimentPlot
 ```
+
+Reviewing the tweets, we can see a lot more volatility in negative sentiments versus positive or neutral tweets.
+
+Sentiment breakdown by airline
 ```{r}
 # Sentiment count by airline
 ggplot(tweets, aes(x = sentiment, fill = sentiment)) +
@@ -166,6 +215,25 @@ ggplot(tweets, aes(x = sentiment, fill = sentiment)) +
   theme(axis.text.x = element_text(angle=65, vjust=0.6),
         plot.margin = unit(c(3,0,3,0), "cm"))
 ```
+
+The breakdown of the sentiment by airline, shows that no airline was immune to negative sentiment. However, certain airlines like United, US Airways, and American were more likely to receive tweets with negative sentiments than others. 
+
+Plot tweets by Negative Sentiment Reason
+```{r}
+# Plot tweets by Sentiment Reason
+tweetsbySentimentreason<-tweets%>%
+  filter(sentiment=="negative")%>%
+  group_by(sentiment,reason)%>%
+  summarise(srcount=n())
+tweetsbySentimentreasonPlot<-ggplot(tweetsbySentimentreason) +
+  geom_col(
+    mapping = aes(x = sentiment, y = srcount, fill = reason), position = "dodge"
+  )
+tweetsbySentimentreasonPlot
+```
+
+Customer service issues was listed as the main reason of negative sentiment. The airlines can address this by having measures in place to counteract negative sentiment, such as interacting with passengers directly on twitter to resolve their issues and/or provide compensation.
+
 ```{r}
 # Get airlines listed in tweets
 allAirlines <- distinct(tweets, airline)
@@ -185,19 +253,9 @@ tweetsbyTimezonePlot<-ggplot(data = tweetsbyTimezone) +
   geom_col(mapping = aes(x = tzcount, y = timezone))
 tweetsbyTimezonePlot
 ```
-Plot tweets by Negative Sentiment Reason
-```{r}
-# Plot tweets by Sentiment Reason
-tweetsbySentimentreason<-tweets%>%
-  filter(sentiment=="negative")%>%
-  group_by(sentiment,reason)%>%
-  summarise(srcount=n())
-tweetsbySentimentreasonPlot<-ggplot(tweetsbySentimentreason) +
-  geom_col(
-    mapping = aes(x = sentiment, y = srcount, fill = reason), position = "dodge"
-  )
-tweetsbySentimentreasonPlot
-```
+
+Timezone details of the tweets can help airlines determine which locations regional teams and customer support needs to focus on. 
+
 ### 5.3 Tweets text cleanup
 ```{r}
 # Cleaning tweet
@@ -212,49 +270,37 @@ tweets$text <- gsub("[ \t]{2,}", "",tweets$text)
 tweets$text <-gsub("^\\s+|\\s+$", "", tweets$text) 
 ```
 
+### 5.4 Corpus Setup
 ```{r}
-# Cleaning tweet 2
-#https://gist.github.com/CateGitau/05e6ff80b2a3aaa58236067811cee44e
-tweets$text <- gsub("http[[:alnum:]]*",'', x)
-tweets$text <- gsub('http\\S+\\s*', '', x) ## Remove URLs
-tweets$text <- gsub('\\b+RT', '', x) ## Remove RT
-tweets$text <- gsub('#\\S+', '', x) ## Remove Hashtags
-tweets$text <- gsub('@\\S+', '', x) ## Remove Mentions
-tweets$text <- gsub('[[:cntrl:]]', '', x) ## Remove Controls and special characters
-tweets$text <- gsub("\\d", '', x) ## Remove Controls and special characters
-tweets$text <- gsub('[[:punct:]]', '', x) ## Remove Punctuations
-tweets$text <- gsub("^[[:space:]]*","",x) ## Remove leading whitespaces
-tweets$text <- gsub("[[:space:]]*$","",x) ## Remove trailing whitespaces
-tweets$text <- gsub(' +',' ',x) ## Remove extra whitespaces
+# Corpus Setup
+tweetCorpus<-SimpleCorpus(VectorSource(tweets$text))
+print(tweetCorpus)
 ```
 
-### 5.4 Corpus Setup
-Corpus setup (https://gist.github.com/CateGitau/05e6ff80b2a3aaa58236067811cee44e)
+### 5.5 Corpus tweet cleanup
 ```{r}
-# Build a corpus and specify the source to be character of vectors
-tweetCorpus <- Corpus(VectorSource(tweets$text))
-
-Textprocessing <- function(x)
-  {gsub("http[[:alnum:]]*",'', x)
-  gsub('http\\S+\\s*', '', x) ## Remove URLs
-  gsub('\\b+RT', '', x) ## Remove RT
-  gsub('#\\S+', '', x) ## Remove Hashtags
-  gsub('@\\S+', '', x) ## Remove Mentions
-  gsub('[[:cntrl:]]', '', x) ## Remove Controls and special characters
-  gsub("\\d", '', x) ## Remove Controls and special characters
-  gsub('[[:punct:]]', '', x) ## Remove Punctuations
-  gsub("^[[:space:]]*","",x) ## Remove leading whitespaces
-  gsub("[[:space:]]*$","",x) ## Remove trailing whitespaces
-  gsub(' +',' ',x) ## Remove extra whitespaces
-}
-tweetCorpus <- tm_map(tweetCorpus, function(x) iconv(enc2utf8(x), sub = "byte"))
-
-# Convert myCorpus into lowercase
-tweetCorpus <- tm_map(tweetCorpus, content_transformer(tolower))
 # Remove punctuation
-tweetCorpus <- tm_map(tweetCorpus, removePunctuation)
+tweetCorpus<-tm_map(tweetCorpus,removePunctuation)
 # Remove numbers
-tweetCorpus <- tm_map(tweetCorpus, removeNumbers)
+ tweetCorpus<-tm_map(tweetCorpus,removeNumbers)
+# To lower case
+ tweetCorpus<-tm_map(tweetCorpus,content_transformer(tolower))
+# Remove white space
+tweetCorpus<-tm_map(tweetCorpus,stripWhitespace)
+# Remove stopwords
+tweetCorpus<-tm_map(tweetCorpus,removeWords,stopwords("english"))
+# Remove stop word flight
+customstopwords <- c("flight","airline","get","got","dont","will","ive","","told","day","still","can","cant")
+tweetCorpus<-tm_map(tweetCorpus,removeWords,customstopwords)
+```
+
+### 5.6 Remove Stopwords
+```{r}
+# Remove stopwords
+tweetCorpus<-tm_map(tweetCorpus,removeWords,stopwords("english"))
+# Additional stopwords to remove
+customstopwords <- c("flight","airline","get","got","dont","will","ive","","told","day","still","can","cant")
+tweetCorpus<-tm_map(tweetCorpus,removeWords,customstopwords)
 ```
 
 Verify Corpus
@@ -263,45 +309,7 @@ Verify Corpus
 tweetCorpus[[8]]$content
 ```
 
-Remove stopwords
-```{r}
-# Remove stopwords
-tweetCorpus<-tm_map(tweetCorpus,removeWords,stopwords("english"))
-# Remove stop word flight
-customstopwords <- c("flight","airline","get","got","dont","will","ive","","told","day","still","can","cant")
-tweetCorpus<-tm_map(tweetCorpus,removeWords,customstopwords)
-
-tweetCorpus <- tm_map(tweetCorpus,Textprocessing)
-```
-
-```{r}
-#Creating corpus
-#tweetCorpus<-SimpleCorpus(VectorSource(tweets$text))
-```
-```{r}
-#Cleaning Corpus
- 
-
-#Remove punctuation
-#tweetCorpus<-tm_map(tweetCorpus,removePunctuation)
-#Remove numbers
-# tweetCorpus<-tm_map(tweetCorpus,removeNumbers)
-  # To lower case
- #tweetCorpus<-tm_map(tweetCorpus,content_transformer(tolower))
-#Remove white space
-#tweetCorpus<-tm_map(tweetCorpus,stripWhitespace)
-#Remove stopwords
-#tweetCorpus<-tm_map(tweetCorpus,removeWords,stopwords("english"))
-#Remove stop word flight
-#customstopwords <- c("flight","airline","get","got","dont","will","ive","","told","day","still","can","cant")
-#tweetCorpus<-tm_map(tweetCorpus,removeWords,customstopwords)
-
-
-#tweetCorpus[[8]]$content
-```
-
-
-Create Term Document Matrix
+### 5.7 Create Term Document Matrix
 ```{r}
 # Term Document Matrix
 tdmtweetair<-TermDocumentMatrix(tweetCorpus)
@@ -321,19 +329,20 @@ Check Word Frequency
 wordfrequency<-data.frame(text=names(wordcount),freq=wordcount)
 head(wordfrequency)
 ```
-### 5.4 Additional Visualizations
+
+### 5.8 Additional Visualizations
 
 Plot Word Cloud
 ```{r}
 # Word Cloud
 wordfrequency<-data.frame(text=names(wordcount),freq=wordcount)
 wordcloud(words =wordfrequency$text,freq=wordfrequency$freq,min.freq = 1,
-          max.words=50,random.order = FALSE,rot.per=0.35,colors = brewer.pal(8,"Dark2"))
+          max.words=30,random.order = FALSE,rot.per=0.35,colors = brewer.pal(8,"Dark2"))
 ```
+
 Plot Top 20 words from tweets
 ```{r}
 # Top 20 words from the tweets
-
 uniquewords<-wordfrequency%>%
   arrange(-freq)%>%
   top_n(20)
@@ -344,42 +353,40 @@ uniqueWordsPlot<-ggplot(uniquewords) +
 
 uniqueWordsPlot
 ```
+
 Find terms that appear at least a 100 times in the Term Document Matrix
 ```{r}
 # Find terms appearing at least 100 times from TDM
 findFreqTerms(tdmtweetair,100)
 ```
 
-
-```{r}
-dtm <- preprocessCorpus(tweetCorpus)
-convertToDirection(analyzeSentiment(dtm)$SentimentQDAP)
-```
-
-Create Document Term Matrix
+### 5.9 Create Document Term Matrix
 ```{r}
 # Create Document Term Matrix
 dtmtweetairline<-DocumentTermMatrix(tweetCorpus)
+dtmtweetairline
 ```
 
 Convert Sentiment to a Factor
 ```{r}
-#Sentiment convert to factor
+# Convert Sentiment to Factors
 tweets$sentiment <- as.factor(tweets$sentiment)
 ```
 
+# 7.0 Modeling
+
+### 7.1 Train-Test Partitioning
+
+We will partition the data with a 80-20 split
 ```{r}
-
-#PArtition index data 80-20
-
+# Partition index data 80-20
 train_index <- sample(1:nrow(tweets), 0.8 * nrow(tweets))
 test_index <- setdiff(1:nrow(tweets), train_index)
+```
 
-
-#Train and Test set for document matrix,corpus and original dataframe
-
-
-
+### 7.2 Set Train and Test Split
+```{r}
+# Train and Test set for document matrix,corpus and original dataframe
 doc.train <- dtmtweetairline[train_index,]    
 doc.test <- dtmtweetairline[test_index,]  
 
@@ -388,21 +395,21 @@ corpus.test <- tweetCorpus[test_index]
 
 tweets.train<-tweets[train_index,]
 tweets.test<-tweets[test_index,]
-
 ```
 
 ```{r}
-#Get terms atleast 5 times in document matrix
-
+# Get terms at least 5 times in document matrix
 fivefreq <- findFreqTerms(doc.train, 5)
+```
 
+```{r}
 # Update the document matrix for frequent terms
-
 dtm.train<- DocumentTermMatrix(corpus.train, control=list(dictionary = fivefreq))
 dtm.test <- DocumentTermMatrix(corpus.test, control=list(dictionary = fivefreq))
+```
 
-
-#convert term frequency to boolean
+```{r}
+# Convert term frequency to boolean
 
 convert_count <- function(x) {
   y <- ifelse(x > 0, 1,0)
@@ -413,22 +420,107 @@ convert_count <- function(x) {
 train<-apply(dtm.train,2,convert_count)
 test<-apply(dtm.test,2,convert_count)
 
-dim(train)
-dim(tweets.train)
+```
+
+### 7.3 Naives Bayes Classification
+```{r}
+# Naives Bayes Classification Setup
+senticlassifier <- naiveBayes(train, tweets.train$sentiment, laplace = 1) 
+pred<-predict(senticlassifier,test)
+```
+
+### 8.0 Evaluation
+
+### 8.1 Model Evaluation
+```{r}
+# Evaluating the model
+CrossTable(pred, tweets.test$sentiment,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('predicted', 'actual'))
+```
+
+### 8.2 Polarity Over Time
+```{r}
+# Actual Polarity over time
+cc <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#D55E00", "#D65E00")
+tweet_polarity_date_actual <- tweets.test %>%
+ count(sentiment, created) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(polarity = positive - negative,
+    percent_positive = positive / (positive + negative) * 100)
+
+polarity_over_time_actual <- tweet_polarity_date_actual %>%
+  ggplot(aes(created, polarity)) +
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE,aes(color = cc[1])) +
+  theme_fivethirtyeight()+ theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Polarity Over Time-Actual")
+
+relative_polarity_over_time_actual <- tweet_polarity_date_actual %>%
+  ggplot(aes(created, percent_positive )) +
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = cc[1])) +
+  theme_fivethirtyeight() + theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Percent Positive Over Time-Actual")
 ```
 
 ```{r}
-
-#Naives Bayes Classification
-
-senticlassifier <- naiveBayes(train, tweets.train$sentiment, laplace = 1) 
-
-pred<-predict(senticlassifier,newdata=test)
-#table("Predictions"= pred,  "Actual" = tweets.test$sentiment )
+# Append the prediction to test
+tweets.test$prediction<-pred
 ```
 
+```{r}
+# Prediction Polarity Over time
+tweet_polarity_date_predicted <- tweets.test %>%
+ count(prediction, created) %>%
+  spread(prediction, n, fill = 0) %>%
+  mutate(polarity = positive - negative,
+    percent_positive = positive / (positive + negative) * 100)
 
-# Bibliography
+polarity_over_time_predicted <- tweet_polarity_date_predicted %>%
+  ggplot(aes(created, polarity)) +
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE,aes(color = cc[1])) +
+  theme_fivethirtyeight()+ theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Polarity Over Time-Predicted")
+
+relative_polarity_over_time_predicted <- tweet_polarity_date_predicted %>%
+  ggplot(aes(created, percent_positive )) +
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = cc[1])) +
+  theme_fivethirtyeight() + theme(plot.title = element_text(size = 11)) +
+  xlab(NULL) + ylab(NULL) +
+  ggtitle("Percent Positive Over Time-Predicted")
+```
+
+### 8.3 Polarity Visualizations
+```{r}
+grid.arrange(polarity_over_time_actual,polarity_over_time_predicted , ncol = 2)
+```
+```{r}
+grid.arrange(relative_polarity_over_time_actual, relative_polarity_over_time_predicted, ncol = 2)
+```
+# 9.0 Conclusions and Recommendations
+
+# 10.0 Deployment
+The underlying code of this markdown report, can be found on [Github](https://github.com/xnazar/CSDA1040Assignment2) and on the Shiny web application About page as listed on [shinyapps.io](https://jose-g.shinyapps.io/AirlineSentimentv4)
+
+# 11.0 Bibliography
+
+https://www.airlines.org/industry/
+
+https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf
+
+https://www.sec.gov/Archives/edgar/data/1418091/000119312513390321/d564001ds1.htm
+
+https://www.ibisworld.com/united-states/market-research-reports/domestic-airlines-industry/
 
 https://data.world/crowdflower/airline-twitter-sentiment
 
@@ -436,7 +528,12 @@ https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
 
 https://appen.com/
 
+https://www.statista.com/statistics/250577/domestic-market-share-of-leading-us-airlines/
+
 https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py
 
 https://gist.github.com/CateGitau/05e6ff80b2a3aaa58236067811cee44e)
 
+https://money.cnn.com/2013/02/14/news/companies/us-airways-american-airlines-merger/index.html
+
+https://investor.alaskaair.com/news-releases/news-release-details/alaska-air-group-acquire-virgin-america-creating-west-coasts
