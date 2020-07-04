@@ -7,30 +7,24 @@ output: html_document
 ---
 
 # 1.0 Abstract
+Tweets by U.S. airlines passengers can help provide useful real-time customer sentiment information to carriers. Information pulled from passengers' tweets give airlines insight on customer sentiment on current airline operations. Sentiment analysis done on the tweets by text classification help categorize various tweets as either positive, negative, or neutral. Airlines can focus certain measures to counteract any negative sentiments based on tweet information, thus improving overall customer service and customer satisfaction. 
+
 
 # 2.0 Introduction
-The U.S. airline industry is an important driver of the U.S. economy, generating $1.7 Trillion in economic activity and more than 10 million jobs (https://www.airlines.org/industry/). The average industry growth from 2015-2020 was 0.3% (https://www.ibisworld.com/united-states/market-research-reports/domestic-airlines-industry/). In addition, around 17 U.S. airports are listed in the top 60 busiest airports in the world (https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf). 
+The U.S. airline industry is an important driver of the U.S. economy, generating $1.7 trillion in economic activity and more than 10 million jobs (Airlines for America, 2020). The average industry growth from 2015-2020 was 0.3% (IBIS World, 2020). In addition, around 17 U.S. airports are listed in the top 60 busiest airports in the world (The Port Authority of New York and New Jersey, 2019).
 
-Various factors affect the competitive nature between the leading U.S. airlines, one way to differentiate is provide excellent customer service in their operations. Airlines can use various resources like Twitter, to get real time indicators of customer sentiment. Twitter is a global platform for public self-expression and conversation in real time (https://www.sec.gov/Archives/edgar/data/1418091/000119312513390321/d564001ds1.htm).
+Various factors affect the competitive nature between the leading U.S. airlines, one way to differentiate is to provide excellent customer service in their operations. Airlines can use various resources like Twitter, to get real time indicators of customer sentiment. Twitter is a global social platform for public self-expression and conversation in real time (United States Securities and Exchange Commission, 2013).
 
 Reviewing customer sentiment through passengers' twitter posts can help airlines quickly act on any issues that the passengers face and implement any measures to address declining or negative sentiments.
 
 # 3.0 Objective
-The objective is to analyze U.S. airline customer tweets and visualizing keywords that will help stakeholders quickly determine customer sentiment (positive/negative). 
+The objective is to analyze U.S. airline customer tweets and visualizing keywords that will help stakeholders quickly determine customer sentiment, positive or negative. 
 
 # 4.0 Data Understanding
 
 ### 4.1 About the Data
 
-The data includes twitter posts that was scrapped from February 2015 detailing the problems of each major U.S. Airline and hosted on Kaggle (https://www.kaggle.com/crowdflower/twitter-airline-sentiment). The data was originally collected by Crowdflower (https://data.world/crowdflower/airline-twitter-sentiment) previously known as Figure Eight Inc., and subsequently acquired by Appen an AI data company (https://appen.com/). Contributors helped classify the tweets as either positive, negative, or neutral, and then categorizing negative tweets under various negative reasons (e.g. "late flight", "rude service") (https://data.world/crowdflower/airline-twitter-sentiment). Prior to the initial load into Kaggle, certain transformations were done by Ben Hammer the Co-Founder and CTO at Kaggle. (https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py). 
-
-https://data.world/crowdflower/airline-twitter-sentiment
-
-https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
-
-https://appen.com/
-
-https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py
+The data includes twitter posts that were scrapped from February 2015, detailing the problems of each major U.S. Airline, and hosted on Kaggle (Figure Eight, 2019). The data was originally collected by Crowdflower, previously known as Figure Eight Inc., and subsequently acquired by Appen an AI data company (Figure Eight, 2019; Appen Limited, 2020). Contributors helped classify the tweets as either positive, negative, or neutral, and then categorizing negative tweets under various negative reasons (e.g. "late flight", "rude service") (Crowdflower, 2016). Prior to the initial load into Kaggle, certain transformations were done by Ben Hammer, the Co-Founder and CTO at Kaggle (Hamner, 2016). 
 
 ### 4.2 Import Data
 
@@ -45,7 +39,7 @@ getwd()
 ```{r}
 # Import Data
 tweets=read.csv("Tweets.csv",na.strings=c("", "NA"),stringsAsFactors = FALSE)
-df=tweets
+df=read.csv("Tweets.csv")
 ```
 
 ### 4.3 Import Packages
@@ -66,6 +60,9 @@ library(gmodels)
 library(tidyverse)
 library(gridExtra)
 library(ggthemes)
+library(tidyr)
+library(Hmisc)
+packageVersion("Hmisc")
 ```
 
 # 5.0	Data Exploration and Preparation
@@ -81,15 +78,22 @@ str(tweets)
 summary(tweets)
 ```
 
+```{r}
+summary(df)
+```
+
+
+The data contains 14,640 tweets.
+
 ### 5.1 Initial Data cleanup
 
-Remove columns we will not use.
+Remove columns that are not required for analysis
 ```{r}
 # Drop unused columns
 tweets<- subset(tweets, select = -c(tweet_id,airline_sentiment_gold,negativereason_gold,tweet_coord) )
 ```
 
-To simplify we will rename the columns
+Rename columns to simplify
 ```{r}
 # Rename columns
  new_colname<-c("sentiment","confidence","reason","negconfidence","airline","user","retweet","text","created","location","timezone")
@@ -109,26 +113,26 @@ tweets$created<-as.Date(tweets$created)
 sapply(tweets,class)
 ```
 
-Replace NAs from reason column
+Replace NAs from Reason column
 ```{r}
 # Replace NA with Unknown
 tweets$reason[is.na(tweets$reason)]<-"Unknown"
 ```
 
-Replace NAs under the negative reason confidence with mean 
+Replace NAs under the Negative Reason Confidence with Mean 
 ```{r}
 # Replace NA with mean
 confMean=trunc(mean(tweets$negconfidence, na.rm = TRUE))
 tweets$negconfidence[is.na(tweets$negconfidence)]<-confMean
 ```
 
-Replace NAs under location, with Not Available
+Replace NAs under Location, with Not Available
 ```{r}
 # Replace NA with Not Available
 tweets$location[is.na(tweets$location)]<-"Not Available"
 ```
 
-Replace NAs under timezone with Not Available
+Replace NAs under Timezone with Not Available
 ```{r}
 # Replace NA with not Available
 tweets$timezone[is.na(tweets$timezone)]<-"Not Available"
@@ -147,6 +151,15 @@ dim(tweets)
 table(is.na(tweets))
 ```
 
+```{r}
+#create clean version of all tweets
+cleanTweets <- tweets %>% select(9,8)
+
+#rename columns
+names(cleanTweets)[1] <- "Created"
+names(cleanTweets)[2] <- "Tweet"
+```
+
 ### 5.2 Visualization of Data
 
 Plot number of tweets per Airline
@@ -156,7 +169,7 @@ count<-tweets %>%
   group_by(airline) %>%
   summarise(tcount1=n(),.groups = 'drop')
 
-#Plotting the number of tweets each airlines has received
+#Plotting the number of tweets each airline has received
 
 bg<- ggplot(count) + aes(x= airline,y = tcount1,fill=airline)+ 
   geom_bar(width = 1, stat = "identity")+
@@ -165,9 +178,9 @@ bg<- ggplot(count) + aes(x= airline,y = tcount1,fill=airline)+
 bg
 ```
 
-The number of tweets per U.S. airline provides a quick indicator of market share, mirroring actual figures (https://www.statista.com/statistics/250577/domestic-market-share-of-leading-us-airlines/). For perspective, US Airways and American began the process of a merger in 2013 (https://money.cnn.com/2013/02/14/news/companies/us-airways-american-airlines-merger/index.html). Virgin America a smaller player in the industry was then acquired by Alaska airlines in 2016 (https://investor.alaskaair.com/news-releases/news-release-details/alaska-air-group-acquire-virgin-america-creating-west-coasts).
+The number of tweets per U.S. airline provides a quick indicator of market share or size of each airline, mirroring actual figures (Mazareanu, 2020). For perspective, US Airways and American began the process of a merger in 2013 (Isidore, 2013). Virgin America, a smaller player in the industry, was then acquired by Alaska airlines in 2016 (Alaska Airlines, Inc., 2016).
 
-Plot tweets by Airline with time period
+Plot tweets per Airline with time period
 ```{r}
 # Plot tweets by Airline
 tweetsbyAirline<-tweets%>%
@@ -177,7 +190,7 @@ tweetsbyAirlinePlot=ggplot()+geom_line(data=tweetsbyAirline,aes(x=created,y=tcou
 tweetsbyAirlinePlot
 ```
 
-Plot tweets by Sentiment
+Plot tweets by Sentiment (Positive, Neutral, or Negative)
 ```{r}
 #counting the number of each type of sentiments 
 count_senti<-tweets %>%
@@ -185,7 +198,6 @@ count_senti<-tweets %>%
   summarise(tc=n(),.groups = 'drop')
 
 #Plotting the number of each type of sentiments
-
 bg2<- ggplot(count_senti) + aes(x= sentiment ,y = tc,fill=sentiment)+ 
   geom_bar(width = 1, stat = "identity")+
   #geom_histogram()+
@@ -216,7 +228,7 @@ ggplot(tweets, aes(x = sentiment, fill = sentiment)) +
         plot.margin = unit(c(3,0,3,0), "cm"))
 ```
 
-The breakdown of the sentiment by airline, shows that no airline was immune to negative sentiment. However, certain airlines like United, US Airways, and American were more likely to receive tweets with negative sentiments than others. 
+The breakdown of the sentiment by airline, shows that no airline was immune to negative sentiment. However, certain airlines like United, US Airways, and American were more likely to receive tweets with negative sentiments compared to others. 
 
 Plot tweets by Negative Sentiment Reason
 ```{r}
@@ -234,13 +246,6 @@ tweetsbySentimentreasonPlot
 
 Customer service issues was listed as the main reason of negative sentiment. The airlines can address this by having measures in place to counteract negative sentiment, such as interacting with passengers directly on twitter to resolve their issues and/or provide compensation.
 
-```{r}
-# Get airlines listed in tweets
-allAirlines <- distinct(tweets, airline)
-allAirlines <- lapply(allAirlines, as.character)
-print(allAirlines)
-```
-
 Plot tweets by Timezone
 ```{r}
 # Plot tweets by Timezone
@@ -254,7 +259,54 @@ tweetsbyTimezonePlot<-ggplot(data = tweetsbyTimezone) +
 tweetsbyTimezonePlot
 ```
 
-Timezone details of the tweets can help airlines determine which locations regional teams and customer support needs to focus on. 
+Timezone details of the tweets can help airlines determine which locations regional teams and customer support need to focus on. 
+
+```{r}
+# Get airlines listed in tweets
+allAirlines <- distinct(tweets, airline)
+allAirlines <- lapply(allAirlines, as.character)
+print(allAirlines)
+```
+
+```{r}
+sentimentCount<-df %>%
+  group_by(airline_sentiment) %>%
+  summarise(tc=n(),.groups = 'drop')
+```
+
+```{r}
+#Get sentiment counts for each airlines
+americanSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'American')%>%
+  summarise(tc1=n(),.groups = 'drop')
+
+deltaSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'Delta')%>%
+  summarise(tc2=n(),.groups = 'drop')
+
+southwestSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'Southwest')%>%
+  summarise(tc3=n(),.groups = 'drop')
+
+unitedSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'United')%>%
+  summarise(tc4=n(),.groups = 'drop')
+
+usairwaysSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'US Airways')%>%
+  summarise(tc5=n(),.groups = 'drop')
+
+virginSentimentCount<-df%>%
+  group_by(airline_sentiment)%>%
+  filter(airline == 'American')%>%
+  summarise(tc6=n(),.groups = 'drop')
+```
+
 
 ### 5.3 Tweets text cleanup
 ```{r}
@@ -373,18 +425,18 @@ Convert Sentiment to a Factor
 tweets$sentiment <- as.factor(tweets$sentiment)
 ```
 
-# 7.0 Modeling
+# 6.0 Modeling
 
-### 7.1 Train-Test Partitioning
+### 6.1 Train-Test Partitioning
 
-We will partition the data with a 80-20 split
+The data was partitioned with a 80-20 split
 ```{r}
 # Partition index data 80-20
 train_index <- sample(1:nrow(tweets), 0.8 * nrow(tweets))
 test_index <- setdiff(1:nrow(tweets), train_index)
 ```
 
-### 7.2 Set Train and Test Split
+### 6.2 Set Train and Test Split
 ```{r}
 # Train and Test set for document matrix,corpus and original dataframe
 doc.train <- dtmtweetairline[train_index,]    
@@ -397,6 +449,7 @@ tweets.train<-tweets[train_index,]
 tweets.test<-tweets[test_index,]
 ```
 
+### 6.3 Term Frequency
 ```{r}
 # Get terms at least 5 times in document matrix
 fivefreq <- findFreqTerms(doc.train, 5)
@@ -408,9 +461,9 @@ dtm.train<- DocumentTermMatrix(corpus.train, control=list(dictionary = fivefreq)
 dtm.test <- DocumentTermMatrix(corpus.test, control=list(dictionary = fivefreq))
 ```
 
+### 6.4 Boolean Term Freqency Conversion
 ```{r}
 # Convert term frequency to boolean
-
 convert_count <- function(x) {
   y <- ifelse(x > 0, 1,0)
   y <- factor(y, levels=c(0,1), labels=c("No", "Yes"))
@@ -422,16 +475,19 @@ test<-apply(dtm.test,2,convert_count)
 
 ```
 
-### 7.3 Naives Bayes Classification
+### 6.5 Naives Bayes Algorithm
+
+The Naive Bayes text classification algorithm will be applied, specifically the multinomial Naive Bayes algorithm. This method determines the absence or presence of features in a Boolean format, replacing term frequencies. In sentiment classification, the presence/absence of a word is more important than the frequency of a word (Jurafsky, 2019).
+
 ```{r}
 # Naives Bayes Classification Setup
 senticlassifier <- naiveBayes(train, tweets.train$sentiment, laplace = 1) 
 pred<-predict(senticlassifier,test)
 ```
 
-### 8.0 Evaluation
+# 7.0 Evaluation
 
-### 8.1 Model Evaluation
+### 7.1 Model Evaluation
 ```{r}
 # Evaluating the model
 CrossTable(pred, tweets.test$sentiment,
@@ -439,7 +495,8 @@ CrossTable(pred, tweets.test$sentiment,
            dnn = c('predicted', 'actual'))
 ```
 
-### 8.2 Polarity Over Time
+
+### 7.2 Polarity Over Time
 ```{r}
 # Actual Polarity over time
 cc <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#D55E00", "#D65E00")
@@ -500,40 +557,80 @@ relative_polarity_over_time_predicted <- tweet_polarity_date_predicted %>%
   ggtitle("Percent Positive Over Time-Predicted")
 ```
 
-### 8.3 Polarity Visualizations
+### 7.3 Polarity Visualizations
 ```{r}
 grid.arrange(polarity_over_time_actual,polarity_over_time_predicted , ncol = 2)
 ```
+
 ```{r}
 grid.arrange(relative_polarity_over_time_actual, relative_polarity_over_time_predicted, ncol = 2)
 ```
+
+The plots show polar sentiment of the tweets from 16-Feb-2019 to 24-Feb-2019. Polarity is Positive less Negative, Percent Positive is calculated by (Positive/Positive+Negative)*100").
+
+In both plots, sentiment is mostly negative over time.
+
+# 8.0 RDS Files for Shiny App
+
+```{r}
+# Generate RDS Files for Shiny Application
+saveRDS(cleanTweets, "cleanTweets.rds")
+saveRDS(sentimentCount, "sentimentCount.rds")
+saveRDS(americanSentimentCount, "americanSentimentCount.rds")
+saveRDS(deltaSentimentCount, "deltaSentimentCount.rds")
+saveRDS(wordfrequency, "wordfrequency.rds")
+saveRDS(polarity_over_time_actual, "polarity_over_time_actual.rds")
+saveRDS(tweet_polarity_date_actual, "tweet_polarity_date_actual.rds")
+saveRDS(relative_polarity_over_time_actual, "relative_polarity_over_time_actual.rds")
+saveRDS(tweet_polarity_date_actual, "tweet_polarity_date_actual.rds")
+saveRDS(polarity_over_time_predicted, "polarity_over_time_predicted.rds")
+saveRDS(tweet_polarity_date_predicted, "tweet_polarity_date_predicted.rds")
+saveRDS(relative_polarity_over_time_predicted, "relative_polarity_over_time_predicted.rds")
+saveRDS(tweet_polarity_date_predicted, "tweet_polarity_date_predicted.rds")
+saveRDS(cc, "cc.rds")
+saveRDS(uniquewords, "uniquewords.rds")
+saveRDS(uniqueWordsPlot, "uniqueWordsPlot.rds")
+saveRDS(tweets, "tweets.rds")
+saveRDS(tweetsbySentimentreasonPlot, "tweetsbySentimentreasonPlot.rds")
+```
+
 # 9.0 Conclusions and Recommendations
 
+It is evident that sentiment from tweets for the U.S. airlines is predominantly negative, due to customer service issues. Certain airlines receive more negative tweets in part not just because of issues passengers face, but also due to the size of their operations; planes they operate versus other carriers. Airlines can address the negative sentiment by proactively monitoring their twitter feeds from disgruntled passengers and working on solutions with them, before they loose the customer to other carriers down the line.
+
+Further analysis of the twitter feed could help understand if the negative sentiment was just for this short period in time, or an ongoing issue. Increasing the sample size to months or years will help provide more insight. In addition, detailing sentiment over certain time periods like certain seasons or peak flying periods like summer or Christmas holidays can provide airlines better indications to properly prepare customer support staff prior on where to focus their efforts, and keep passengers satisfied and retain future business.
+
+Additional information like local weather data and aircraft details, that airlines already have can also provide the model more insight on customer sentiment. Canceled flights due to local weather delays or mechanical failures on aging aircraft, can help pinpoint certain actions the airlines prior to the passenger receiving the bad news. Airlines can remove aircraft that results in more negative sentiment than other aircraft in the fleet, and Airlines can offer revised routes to passengers' destinations prior to a flight being canceled.
+
+Proactive monitoring of the customers sentiment overtime, will help provide a quick indicator if actions taken by the airlines are effective or would need further refinement.
+
 # 10.0 Deployment
-The underlying code of this markdown report, can be found on [Github](https://github.com/xnazar/CSDA1040Assignment2) and on the Shiny web application About page as listed on [shinyapps.io](https://jose-g.shinyapps.io/AirlineSentimentv4)
+The underlying code of this markdown report, can be found on [Github](https://github.com/xnazar/CSDA1040Assignment2) and on the Shiny web application About page as listed on [shinyapps.io](https://jose-g.shinyapps.io/AirlineSentiment)
+
+The Shiny app provides a quick visual overview of the customer sentiment from the analysis done on the tweets overall and on each airline. 
 
 # 11.0 Bibliography
 
-https://www.airlines.org/industry/
+Airlines for America (A4A). (2020). The Airline Industry. Retrieved July 01, 2020, from https://www.airlines.org/industry/
 
-https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf
+Alaska Airlines, Inc. (2016, April 04). Alaska Air Group to Acquire Virgin America, Creating West Coast's Premier Carrier. Retrieved July 02, 2020, from https://investor.alaskaair.com/news-releases/news-release-details/alaska-air-group-acquire-virgin-america-creating-west-coasts
 
-https://www.sec.gov/Archives/edgar/data/1418091/000119312513390321/d564001ds1.htm
+Appen Limited. (2020). Confidence to Deploy AI with World-Class Training Data. Retrieved June 28, 2020, from https://appen.com/
 
-https://www.ibisworld.com/united-states/market-research-reports/domestic-airlines-industry/
+Crowdflower. (2016, November 21). Airline Twitter Sentiment - dataset by crowdflower. Retrieved June 27, 2020, from https://data.world/crowdflower/airline-twitter-sentimentThe Port Authority of New York and New Jersey. (2019). 2019 Airport Traffic Report. Retrieved July 02, 2020, from https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf
 
-https://data.world/crowdflower/airline-twitter-sentiment
+Figure Eight. (2019, October 16). Twitter US Airline Sentiment. Retrieved June 28, 2020, from https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
 
-https://www.kaggle.com/crowdflower/twitter-airline-sentiment/data
+Hamner, B. (2016). Benhamner/crowdflower-airline-twitter-sentiment. Retrieved June 28, 2020, from https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py
 
-https://appen.com/
+IBISWorld. (2020). Industry Market Research, Reports, and Statistics. Retrieved July 01, 2020, from https://www.ibisworld.com/united-states/market-research-reports/domestic-airlines-industry/
 
-https://www.statista.com/statistics/250577/domestic-market-share-of-leading-us-airlines/
+Isidore, C. (2013). US Airways-American Airlines to merge. Retrieved July 02, 2020, from https://money.cnn.com/2013/02/14/news/companies/us-airways-american-airlines-merger/index.html
 
-https://github.com/benhamner/crowdflower-airline-twitter-sentiment/blob/master/src/process.py
+Jurafsky, D. (2019). Text Classification and Naïve Bayes. Retrieved July 01, 2020, from https://web.stanford.edu/~jurafsky/slp3/slides/7_NB.pdf
 
-https://gist.github.com/CateGitau/05e6ff80b2a3aaa58236067811cee44e)
+Mazareanu, E. (2020, June 15). U.S. airline industry market share 2019. Retrieved July 01, 2020, from https://www.statista.com/statistics/250577/domestic-market-share-of-leading-us-airlines/
 
-https://money.cnn.com/2013/02/14/news/companies/us-airways-american-airlines-merger/index.html
+The Port Authority of New York and New Jersey. (2019). 2019 Airport Traffic Report. Retrieved July 02, 2020, from https://www.panynj.gov/content/dam/airports/statistics/statistics-general-info/annual-atr/ATR2019.pdf
 
-https://investor.alaskaair.com/news-releases/news-release-details/alaska-air-group-acquire-virgin-america-creating-west-coasts
+United States Securities and Exchange Commission. (2013). Twitter, Inc - Initial Public Offering. Retrieved June 27, 2020, from https://www.sec.gov/Archives/edgar/data/1418091/000119312513390321/d564001ds1.htm
