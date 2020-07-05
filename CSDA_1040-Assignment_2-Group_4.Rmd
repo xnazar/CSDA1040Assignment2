@@ -566,7 +566,7 @@ grid.arrange(polarity_over_time_actual,polarity_over_time_predicted , ncol = 2)
 grid.arrange(relative_polarity_over_time_actual, relative_polarity_over_time_predicted, ncol = 2)
 ```
 
-The plots show polar sentiment of the tweets from 16-Feb-2019 to 24-Feb-2019. Polarity is Positive less Negative, Percent Positive is calculated by (Positive/Positive+Negative)*100").
+The plots show polar sentiment of the tweets from 16-Feb-2015 to 24-Feb-2015. Polarity is Positive less Negative, Percent Positive is calculated by (Positive/Positive+Negative)*100").
 
 In both plots, sentiment is mostly negative over time.
 
@@ -578,6 +578,10 @@ saveRDS(cleanTweets, "cleanTweets.rds")
 saveRDS(sentimentCount, "sentimentCount.rds")
 saveRDS(americanSentimentCount, "americanSentimentCount.rds")
 saveRDS(deltaSentimentCount, "deltaSentimentCount.rds")
+saveRDS(southwestSentimentCount, "southwestSentimentCount.rds")
+saveRDS(unitedSentimentCount, "unitedSentimentCount.rds")
+saveRDS(usairwaysSentimentCount, "usairwaysSentimentCount.rds")
+saveRDS(virginSentimentCount, "virginSentimentCount.rds")
 saveRDS(wordfrequency, "wordfrequency.rds")
 saveRDS(polarity_over_time_actual, "polarity_over_time_actual.rds")
 saveRDS(tweet_polarity_date_actual, "tweet_polarity_date_actual.rds")
